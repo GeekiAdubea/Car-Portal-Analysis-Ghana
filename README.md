@@ -11,5 +11,7 @@ Analysis of used car data can potentially offer savings of time and money for th
 
 ## Resources used include: 
 Python 3 (Pandas, NumPy, Matplotlib, Seaborn)
+
 BeautifulSoup
+
 MongoDB
