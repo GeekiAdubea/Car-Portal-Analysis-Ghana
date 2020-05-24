@@ -61,10 +61,18 @@ def collect_car_details_and_store_in_mongo(content):
         new_link = 'http://tonaton.com' + link
         r = requests.get(new_link).text
         r_content = BeautifulSoup(r, 'html.parser')
-        details = r_content.find_all('div', attrs={'class':'two-columns--19Hyo'})
+        #details = r_content.find_all('div', attrs={'class':'two-columns--19Hyo'})
 
         extract = {}
-        for i in details:
+
+        listing = r_content.find("h1", attrs={"class":"title--3s1R8"}).text
+        extract['Listing'] = listing
+
+        price = r_content.find("div", attrs={"class":"amount--3NTpl"}).text
+        extract['Price'] = price
+
+        all_data = r_content.find_all('div', attrs={'class':'two-columns--19Hyo full-width--XovDn justify-content-flex-start--1Xozy align-items-normal--vaTgD flex-wrap-nowrap--3IpfJ flex-direction-row--27fh1 flex--3fKk1'})
+        for i in all_data:
             extract[i.find('div', attrs={'class':'word-break--2nyVq label--3oVZK'}).text] = i.find('div', attrs={'class': 'word-break--2nyVq value--1lKHt'}).text
         
         db_client.web_scraping_db.cars_collection.insert_one(extract)
