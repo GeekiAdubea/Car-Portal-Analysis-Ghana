@@ -1,26 +1,40 @@
+import sys
+import logging
+import time
+
 import requests
-import argparse
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
-import sys
 
-base_url = 'https://tonaton.com/en/ads/ghana/cars'
+logging.basicConfig(level=logging.DEBUG)
+
+BASE_URL = 'https://tonaton.com/en/ads/ghana/cars'
 page_num = 1
 
-#function to get url of page
+HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36"}
+
+
 def get_page(url):
-    page = requests.get(url).text
+    """
+    Function for getting a page using a url.
+    Sleep for 1 second before evert request. Just to be good citizens of the internet.
+    """
+    time.sleep(1)
+    page = requests.get(url, headers=HEADERS).text
     return page
 
-#this function will parse to BeautifulSoup and collect all page details
+
 def collect_page_info(url):
-    if args.verbose:
-        print("Requesting page...")
-    page = requests.get(url).text
+    """
+    This function collects the car items on every page, parses it and 
+    calls the function collect_car_details_and_store_in_mongo to retrieve 
+    the cars details and store in mongodb.
+    """
+    logging.info("getting page for url: {}".format(url))
+    page = get_page(url)
 
     #Parsing with BeautifulSoup
-    if args.verbose:
-        print("Parsing response with BeautifulSoup")
+    logging.info("Parsing page response with BeautifulSoup")
     page_content = BeautifulSoup(page, 'html.parser')
 
     #HTML tag that contains data I want to scrape
@@ -33,35 +47,32 @@ def collect_page_info(url):
     end = page_content.find("div", {"class": "no-result-text--16bWr"})
 
     if end is None:
-        if args.verbose:
-            print("On to the next page")
+        logging.info("On to the next page")
     #if end returns nothing, then there is more data
         global page_num
         page_num += 1
-        new_url = base_url + "?page={}".format(page_num)
+        new_url = BASE_URL + "?page={}".format(page_num)
         collect_page_info(new_url)
     else:
-        if args.verbose:
-            print("No more data")
+        logging.info("No more data to scrape")
         sys.exit(1)
         
-#function for scraping data and saving it in MongoDB
+
 def collect_car_details_and_store_in_mongo(content):
-    if args.verbose:
-        print("Connecting to MongoDB")
+    """
+    This function extracts car details from a page, and saves it in mongodb
+    """
+    logging.info("Connecting to MongoDB")
     db_client = MongoClient()
 
-    if args.verbose:
-        print("Extracting data from response")
+    logging.info("Extracting data from details response")
     
     #looping through tag we will be scraping 
-    for i in content:
-    #for each entry
-        link = i.get('href')
+    for each in content:
+        link = each.get('href')
         new_link = 'http://tonaton.com' + link
-        r = requests.get(new_link).text
-        r_content = BeautifulSoup(r, 'html.parser')
-        #details = r_content.find_all('div', attrs={'class':'two-columns--19Hyo'})
+        req = get_page(new_link)
+        r_content = BeautifulSoup(req, 'html.parser')
 
         extract = {}
 
@@ -71,18 +82,14 @@ def collect_car_details_and_store_in_mongo(content):
         price = r_content.find("div", attrs={"class":"amount--3NTpl"}).text
         extract['Price'] = price
 
+       
         all_data = r_content.find_all('div', attrs={'class':'two-columns--19Hyo full-width--XovDn justify-content-flex-start--1Xozy align-items-normal--vaTgD flex-wrap-nowrap--3IpfJ flex-direction-row--27fh1 flex--3fKk1'})
         for i in all_data:
             extract[i.find('div', attrs={'class':'word-break--2nyVq label--3oVZK'}).text] = i.find('div', attrs={'class': 'word-break--2nyVq value--1lKHt'}).text
         
+        logging.info("Saving data in mongo")
         db_client.web_scraping_db.cars_collection.insert_one(extract)
 
+
 if __name__ == "__main__":
-
-    arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument("-d", "--dryrun", help="dry run mode- no changes", action="store_true")
-    arg_parser.add_argument("-v", "--verbose", help="enable verbose output", action="store_true")
-    args = arg_parser.parse_args()
-
-    get_page(base_url)
-    collect_page_info(base_url)
+    collect_page_info(BASE_URL)
