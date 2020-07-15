@@ -20,8 +20,9 @@ def get_page(url):
     Sleep for 1 second before evert request. Just to be good citizens of the internet.
     """
     time.sleep(1)
-    page = requests.get(url, headers=HEADERS).text
-    return page
+    page = requests.get(url, headers=HEADERS)
+    page.encoding = 'utf-8'
+    return page.text
 
 
 def collect_page_info(url):
@@ -35,7 +36,7 @@ def collect_page_info(url):
 
     #Parsing with BeautifulSoup
     logging.info("Parsing page response with BeautifulSoup")
-    page_content = BeautifulSoup(page, 'html.parser')
+    page_content = BeautifulSoup(page.encode('utf-8','ignore'), 'html.parser')
 
     #HTML tag that contains data I want to scrape
     all_cars = page_content.find_all('a', attrs={'class':'card-link--3ssYv gtm-ad-item'})
@@ -77,7 +78,7 @@ def collect_car_details_and_store_in_mongo(content):
         extract = {}
 
         listing = r_content.find("h1", attrs={"class":"title--3s1R8"}).text
-        listing = r_content.find("h1", attrs={"class":"title--3s1R8"}).text
+        #listing = r_content.find("h1", attrs={"class":"title--3s1R8"}).text
         extract['Listing'] = listing
 
         price = r_content.find("div", attrs={"class":"amount--3NTpl"}).text
@@ -87,6 +88,8 @@ def collect_car_details_and_store_in_mongo(content):
         all_data = r_content.find_all('div', attrs={'class':'two-columns--19Hyo full-width--XovDn justify-content-flex-start--1Xozy align-items-normal--vaTgD flex-wrap-nowrap--3IpfJ flex-direction-row--27fh1 flex--3fKk1'})
         for i in all_data:
             extract[i.find('div', attrs={'class':'word-break--2nyVq label--3oVZK'}).text] = i.find('div', attrs={'class': 'word-break--2nyVq value--1lKHt'}).text
+
+        extract['URL'] = new_link
         
         logging.info("Saving data in mongo")
         db_client.web_scraping_db.cars_collection.insert_one(extract)
