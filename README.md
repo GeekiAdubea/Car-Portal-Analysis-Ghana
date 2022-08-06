@@ -3,8 +3,14 @@ The purpose of this project is to scrape data from a online car portal and perfo
 
 ## Motivation
 My attention was drawn to what the average consumer has to go through when looking for a car to purchase.
-Where do they go? Which make can be trusted? What is the average price to pay per brand?
-Most importantly, what features of a car can be used to determine the price.
+<br>
+  Where do they go? 
+	<br>
+  Which make can be trusted? 
+	<br>
+  What is the average price to pay per brand?
+	<br>
+  Most importantly, what features of a car can be used to determine the price.
 The motivation of this project is to derive meaningful insights for the consumer.
 
 Analysis of used car data can potentially offer savings of time and money for the customer
